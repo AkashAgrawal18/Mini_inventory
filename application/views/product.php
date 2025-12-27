@@ -64,44 +64,16 @@
     <script>
         $(document).ready(function() {
 
-            function loadProducts(page = 1) {
-                let search = $("#search").val();
-
-                $.ajax({
-                    url: "<?= base_url('Welcome/get_products') ?>",
-                    data: {
-                        page: page,
-                        search: search
-                    },
-                    dataType: "json",
-                    success: function(res) {
-                        let rows = '';
-                        $.each(res.products, function(i, p) {
-                            rows += `
-                    <tr>
-                        <td>${p.product_code}</td>
-                        <td>${p.product_name}</td>
-                        <td>${p.category}</td>
-                        <td>${p.price}</td>
-                        <td>${p.stock_quantity}</td>
-                        <td>
-                            <button class="btn btn-danger btn-xs delete" data-id="${p.id}">Delete</button>
-                        </td>
-                    </tr>`;
-                        });
-
-                        $("#productTable").html(rows);
-                        $("#pagination").html(res.pagination);
-                    }
-                });
-            }
-
             loadProducts();
 
             $(document).on('click', '.pagination a', function(e) {
                 e.preventDefault();
                 let page = $(this).text();
                 loadProducts(page);
+            });
+
+            $("#search").keyup(function() {
+                loadProducts(1);
             });
 
             $("#productForm").submit(function(e) {
@@ -129,9 +101,66 @@
                     }
                 });
             });
-
-
         });
+
+        $(document).on('click', '.delete', function() {
+
+            if (!confirm("Are you sure you want to delete this product?")) {
+                return;
+            }
+
+            let id = $(this).data('id');
+
+            $.ajax({
+                url: "<?= base_url('Welcome/delete_product/') ?>" + id,
+                type: "GET",
+                dataType: "json",
+                success: function(res) {
+
+                    if (res.status) {
+                        loadProducts();
+                        showAlert('success', res.message);
+                    } else {
+                        showAlert('danger', res.message);
+                    }
+                },
+                error: function() {
+                    showAlert('danger', 'Server error. Please try again.');
+                }
+            });
+        });
+
+        function loadProducts(page = 1) {
+            let search = $("#search").val();
+
+            $.ajax({
+                url: "<?= base_url('Welcome/get_products') ?>",
+                data: {
+                    page: page,
+                    search: search
+                },
+                dataType: "json",
+                success: function(res) {
+                    let rows = '';
+                    $.each(res.products, function(i, p) {
+                        rows += `
+                    <tr>
+                        <td>${p.product_code}</td>
+                        <td>${p.product_name}</td>
+                        <td>${p.category}</td>
+                        <td>${p.price}</td>
+                        <td>${p.stock_quantity}</td>
+                        <td>
+                            <button class="btn btn-danger btn-xs delete" data-id="${p.id}">Delete</button>
+                        </td>
+                    </tr>`;
+                    });
+
+                    $("#productTable").html(rows);
+                    $("#pagination").html(res.pagination);
+                }
+            });
+        }
 
         function showAlert(type, message) {
             $("#alertBox")
