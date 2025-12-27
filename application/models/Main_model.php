@@ -2,7 +2,7 @@
 
 class Main_model extends CI_model
 {
-    public function get_products($limit, $offset, $search = '')
+    public function get_products($limit, $offset, $search = '', $type = '')
     {
         if ($search) {
             $this->db->group_start()
@@ -11,16 +11,19 @@ class Main_model extends CI_model
                 ->or_like('category', $search)
                 ->group_end();
         }
+        if ($type == 'active') {
+            $this->db->where('deleted_at', NULL);
+        } else if ($type == 'deleted') {
+            $this->db->where('deleted_at IS NOT NULL', null, false);
+        }
 
-        return $this->db
-            ->where('deleted_at', NULL)
-            ->limit($limit, $offset)
+        return $this->db->limit($limit, $offset)
             ->order_by('id', 'DESC')
             ->get('products')
             ->result();
     }
 
-    public function count_products($search = '')
+    public function count_products($search = '', $type = '')
     {
         if ($search) {
             $this->db->group_start()

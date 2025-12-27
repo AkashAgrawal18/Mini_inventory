@@ -18,11 +18,11 @@ class Welcome extends MY_Controller
   {
     $search = $this->input->get('search');
     $page   = $this->input->get('page');
-
+    $type   = $this->input->get('type');
     $limit = 5;
     $offset = ($page) ? ($page - 1) * $limit : 0;
 
-    $total = $this->Main_model->count_products($search);
+    $total = $this->Main_model->count_products($search,$type);
 
     $pagination_data = $this->setup_pagination(
       site_url('Master/products_list'),
@@ -32,7 +32,7 @@ class Welcome extends MY_Controller
     );
 
     $data = [
-      'products' => $this->Main_model->get_products($limit, $offset, $search),
+      'products' => $this->Main_model->get_products($limit, $offset, $search,$type),
       'pagination' => $pagination_data['pagination_links'],
     ];
 
