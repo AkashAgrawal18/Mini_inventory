@@ -6,7 +6,8 @@ class Main_model extends CI_model
     {
         if ($search) {
             $this->db->group_start()
-                ->like('product_name', $search)
+                ->like('product_code', $search)
+                ->or_like('product_name', $search)
                 ->or_like('category', $search)
                 ->group_end();
         }
@@ -23,7 +24,8 @@ class Main_model extends CI_model
     {
         if ($search) {
             $this->db->group_start()
-                ->like('product_name', $search)
+                ->like('product_code', $search)
+                ->or_like('product_name', $search)
                 ->or_like('category', $search)
                 ->group_end();
         }
@@ -50,5 +52,34 @@ class Main_model extends CI_model
     {
         return $this->db->where('id', $id)
             ->update('products', ['deleted_at' => date('Y-m-d H:i:s')]);
+    }
+
+    public function check_product_code($product_code, $id = null)
+    {
+        $this->db->where('product_code', $product_code);
+
+        if (!empty($id)) {
+            $this->db->where('id !=', $id); // edit case
+        }
+
+        return $this->db->get('products')->row();
+    }
+
+    public function get_deleted_products()
+    {
+        return $this->db
+            ->where('deleted_at IS NOT NULL', null, false)
+            ->get('products')
+            ->result();
+    }
+
+    public function restore_product($id)
+    {
+        return $this->db
+            ->where('id', $id)
+            ->update('products', [
+                'deleted_at' => NULL,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
     }
 }

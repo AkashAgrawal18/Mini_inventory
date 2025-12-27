@@ -11,7 +11,16 @@
     <div class="container">
         <h3 class="text-center">Mini Inventory Manager</h3>
         <div id="alertBox" style="display:none;" class="alert"></div>
-        <input type="text" id="search" class="form-control" placeholder="Search by name or category">
+        <div class="row">
+            <div class="col-md-8">
+                <input type="text" id="search" class="form-control" placeholder="Search by name or category">
+            </div>
+            <div class="col-md-4">
+                <button id="toggleDeleted" class="btn btn-warning btn-block">
+                    View Deleted
+                </button>
+            </div>
+        </div>
 
         <br>
         <button class="btn btn-success" data-toggle="modal" data-target="#productModal">Add Product</button>
@@ -43,11 +52,11 @@
                     </div>
                     <div class="modal-body">
                         <input type="hidden" name="id" id="id">
-                        <input type="text" name="product_code" class="form-control" placeholder="Product Code" required><br>
-                        <input type="text" name="product_name" class="form-control" placeholder="Product Name" required><br>
-                        <input type="text" name="category" class="form-control" placeholder="Category"><br>
-                        <input type="number" name="price" class="form-control" placeholder="Price" required><br>
-                        <input type="number" name="stock_quantity" class="form-control" placeholder="Stock"><br>
+                        <input type="text" id="product_code" name="product_code" class="form-control" placeholder="Product Code" required><br>
+                        <input type="text" id="product_name" name="product_name" class="form-control" placeholder="Product Name" required><br>
+                        <input type="text" id="category" name="category" class="form-control" placeholder="Category"><br>
+                        <input type="number" id="price" name="price" class="form-control" placeholder="Price" required><br>
+                        <input type="number" id="stock_quantity" name="stock_quantity" class="form-control" placeholder="Stock"><br>
                     </div>
                     <div class="modal-footer">
                         <button type="submit" class="btn btn-primary">Save</button>
@@ -62,6 +71,7 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
 
     <script>
+        let viewType = 'active';
         $(document).ready(function() {
 
             loadProducts();
@@ -130,6 +140,57 @@
             });
         });
 
+        $("#toggleDeleted").click(function() {
+
+            if (viewType === 'active') {
+                viewType = 'deleted';
+                $(this).text('View Active')
+                    .removeClass('btn-warning')
+                    .addClass('btn-primary');
+            } else {
+                viewType = 'active';
+                $(this).text('View Deleted')
+                    .removeClass('btn-primary')
+                    .addClass('btn-warning');
+            }
+
+            loadProducts();
+        });
+
+        $(document).on('click', '.restore', function() {
+
+            if (!confirm('Restore this product?')) return;
+
+            let id = $(this).data('id');
+
+            $.ajax({
+                url: "<?= base_url('Welcome/restore_product/') ?>" + id,
+                type: "GET",
+                dataType: "json",
+                success: function(res) {
+                    if (res.status) {
+                        showAlert('success', res.message);
+                        loadProducts();
+                    } else {
+                        showAlert('danger', res.message);
+                    }
+                }
+            });
+        });
+
+
+        $(document).on('click', '.edit', function() {
+
+            $("#id").val($(this).data('id'));
+            $("#product_code").val($(this).data('code'));
+            $("#product_name").val($(this).data('name'));
+            $("#category").val($(this).data('category'));
+            $("#price").val($(this).data('price'));
+            $("#stock_quantity").val($(this).data('stock'));
+
+            $("#productModal").modal('show');
+        });
+
         function loadProducts(page = 1) {
             let search = $("#search").val();
 
@@ -137,12 +198,39 @@
                 url: "<?= base_url('Welcome/get_products') ?>",
                 data: {
                     page: page,
-                    search: search
+                    search: search,
+                    type: viewType
                 },
                 dataType: "json",
                 success: function(res) {
                     let rows = '';
+                    if (res.length === 0) {
+                        rows = `<tr><td colspan="6" class="text-center">No records found</td></tr>`;
+                    }
                     $.each(res.products, function(i, p) {
+
+                        let actionBtn = '';
+
+                        if (viewType === 'deleted') {
+                            actionBtn = `
+                        <button class="btn btn-success btn-xs restore" data-id="${p.id}">
+                            Restore
+                        </button>`;
+                        } else {
+                            actionBtn = `
+                       <button class="btn btn-info btn-xs edit"
+                            data-id="${p.id}"
+                            data-code="${p.product_code}"
+                            data-name="${p.product_name}"
+                            data-category="${p.category}"
+                            data-price="${p.price}"
+                            data-stock="${p.stock_quantity}">
+                            Edit
+                        </button>
+                            <button class="btn btn-danger btn-xs delete" data-id="${p.id}">Delete</button>
+                       `;
+                        }
+
                         rows += `
                     <tr>
                         <td>${p.product_code}</td>
@@ -150,9 +238,8 @@
                         <td>${p.category}</td>
                         <td>${p.price}</td>
                         <td>${p.stock_quantity}</td>
-                        <td>
-                            <button class="btn btn-danger btn-xs delete" data-id="${p.id}">Delete</button>
-                        </td>
+                        <td>${actionBtn}</td>
+                        
                     </tr>`;
                     });
 

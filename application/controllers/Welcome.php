@@ -44,7 +44,7 @@ class Welcome extends MY_Controller
   {
     $data = $this->input->post();
 
-    if (empty($data['product_name']) || !is_numeric($data['price'])) {
+    if (empty($data['product_name']) || empty($data['product_code']) || !is_numeric($data['price'])) {
       echo json_encode([
         'status' => false,
         'message' => 'Invalid input data'
@@ -52,16 +52,34 @@ class Welcome extends MY_Controller
       return;
     }
 
+    $existing = $this->Main_model->check_product_code($data['product_code'], $data['id'] ?? null);
+
+    if ($existing) {
+
+      if (!empty($existing->deleted_at)) {
+        echo json_encode([
+          'status' => false,
+          'message' => 'This product code exists but the product is deleted. Please restore it or use another code.'
+        ]);
+        return;
+      }
+      echo json_encode([
+        'status' => false,
+        'message' => 'Product code already exists. Please use a unique product code.'
+      ]);
+      return;
+    }
+
     if (!empty($data['id'])) {
-      if($this->Main_model->update_product($data['id'], $data)){
+      if ($this->Main_model->update_product($data['id'], $data)) {
         $msg = 'Product updated successfully';
-      }else{
+      } else {
         $msg = 'Filed to update Product';
       }
     } else {
-      if($this->Main_model->insert_product($data)){
+      if ($this->Main_model->insert_product($data)) {
         $msg = 'Product added successfully';
-      }else{
+      } else {
         $msg = 'Filed to add Product';
       }
     }
@@ -72,29 +90,51 @@ class Welcome extends MY_Controller
     ]);
   }
 
- public function delete_product($id)
-{
+  public function delete_product($id)
+  {
     if (empty($id)) {
-        echo json_encode([
-            'status' => false,
-            'message' => 'Invalid product ID'
-        ]);
-        return;
+      echo json_encode([
+        'status' => false,
+        'message' => 'Invalid product ID'
+      ]);
+      return;
     }
 
     $deleted = $this->Main_model->delete_product($id);
 
     if ($deleted) {
-        echo json_encode([
-            'status' => true,
-            'message' => 'Product deleted successfully'
-        ]);
+      echo json_encode([
+        'status' => true,
+        'message' => 'Product deleted successfully'
+      ]);
     } else {
-        echo json_encode([
-            'status' => false,
-            'message' => 'Unable to delete product'
-        ]);
+      echo json_encode([
+        'status' => false,
+        'message' => 'Unable to delete product'
+      ]);
     }
-}
+  }
 
+  public function restore_product($id)
+  {
+    if (empty($id)) {
+      echo json_encode([
+        'status' => false,
+        'message' => 'Invalid product ID'
+      ]);
+      return;
+    }
+
+    if ($this->Main_model->restore_product($id)) {
+      echo json_encode([
+        'status' => true,
+        'message' => 'Product restored successfully'
+      ]);
+    } else {
+      echo json_encode([
+        'status' => false,
+        'message' => 'Failed to restore product'
+      ]);
+    }
+  }
 }
